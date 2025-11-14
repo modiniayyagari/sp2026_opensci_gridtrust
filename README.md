@@ -7,15 +7,15 @@ This repository contains the artifacts for the paper titled **“In Grid We Trus
 The repository includes:
 
 - The raw ENF datasets used in the paper:
-  - Baseline ambient EM feasibility measurements.
-  - FPGA-based ambient EM traces.
+  - Baseline ambient EM feasibility measurements (Experiment 1).
+  - FPGA-based ambient EM traces (Experiment 2).
   - Temporal reliability measurements at a single grid location (Experiment 3).
   - Server-room robustness measurements (Experiment 4).
   - Multi-location cross-grid validation measurements (Experiment 5).
 - MATLAB scripts that implement the ENF extraction, correlation analysis, and statistical summaries.
 - A compiled MATLAB analysis core (`proc_enf_analysis.p`) used by the top-level scripts.
 
-*Note:* Our core analysis function, originally developed under authors' university policy that restricts source release, is provided here as a compiled MATLAB function (`proc_enf_analysis.p`) rather than in source form. The top-level scripts in this repository call that compiled function so that all analyses in the paper can be reproduced without exposing proprietary internals. 
+*Note:* Our core analysis function, originally developed under the authors' university policy that restricts source release, is provided here as a compiled MATLAB function (`proc_enf_analysis.p`) rather than in source form. The top-level scripts in this repository call that compiled function so that all analyses in the paper can be reproduced without exposing proprietary internals. The detailed analysis procedure is explained in Section 5 of the paper.
 
 
 ## 2. Folder and File Hierarchy
@@ -24,18 +24,45 @@ At a high level, the repository is organized as follows:
 
 - **`exp_inputs/`** – All ENF input traces (ambient EM + mains references) used in the experiments.
 
-  - **`BASE/`** – Baseline ambient EM feasibility experiment (no FPGA workload / simple setup).
+  - **`BASE/`** – Baseline ambient EM feasibility experiment.
     - **`NO_FB/`**  
       - `fpga_em_trace_dc.wav` – Ambient EM trace captured with only picoscope.  
       - `mains_pow_trace_ac.wav` – Ground-truth mains reference trace.
     - **`W_FB/`**  
       - Same file naming as `NO_FB`, but with the setup placed inside a shielding (e.g., Faraday bag) to test isolation effects.
 
-  - **`FPGA/`** – FPGA-board ambient EM experiment (pair-wise ENF feasibility).
+  - **`FPGA/`** – FPGA-board ambient EM experiment (individual pair-wise ENF feasibility).
     - **`SAKU/`**  
-      - `fpga_em_trace_dc.wav` – Ambient EM near the Sakura-G (or equivalent) FPGA board.  
-      - `mains_pow_trace_ac.wav` – Co-recorded mains reference.
+      - `fpga_em_trace_dc.wav` – Ambient EM near the Sakura-G FPGA board.  
+      - `mains_pow_trace_ac.wav` – Ground-truth mains reference trace.
 
+  - **`TREND/`** – **Experiment 3 – ENF Temporal Reliability.**  
+      Designed to measure how stable ENF correlation is over **Week**, **Day-of-Week**, and **Time-of-Day** at a single grid location.
+  
+      - **`WK01/`, `WK02/`** – Two consecutive weeks.
+        - **`WDAY/`**, **`WEND/`** – Weekday vs weekend partition.
+          - **`WED/`, `THUR/`, `SAT/`, `SUN/`** – Specific days.
+            - **`EMRN/`, `MORN/`, `AFTN/`, `EVEN/`** – Time-of-day slots:
+              - EMRN ≈ early morning (4 AM).  
+              - MORN ≈ morning (9 AM).  
+              - AFTN ≈ afternoon (2 PM).  
+              - EVEN ≈ evening (7 PM).
+            - **`T01/`–`T05/`** – Five repeated trials per (Week, Day, Time-of-Day) condition.
+              - `fpga_em_trace_dc.wav` – Ambient EM trace near the FPGA board.
+              - `mains_pow_trace_ac.wav` – Ground-truth mains reference trace.
+  
+      This design yields 2 weeks × 4 days × 4 times × 5 trials = 160 measurements.
+
+  - **`SRV_L/`** – **Experiment 4 – ENF Server-Room Robustness.**  
+      ENF measurements in a high-density computing environment, studying robustness to sensor placement on the server PSU and day-of-week.
+  
+      - **`SBOX/`**, **`SPSU/`** – Two sensor locations:
+        - For each site:
+          - **`MON/`, `WED/`** – Two days.
+            - **`T01/`–`T05/`** – Five repeated trials per (Site, Day) condition.
+              - `fpga_em_trace_dc.wav` – Ambient EM trace near server PSU/BOX.
+              - `mains_pow_trace_ac.wav` – Ground-truth mains reference trace.
+              
   - **`MULTI/`** – **Experiment 5 – ENF Multi-Location Validation.**  
     ENF measurements comparing a single local EM trace against mains references from multiple grid regions.
 
@@ -54,38 +81,11 @@ At a high level, the repository is organized as follows:
       - **`AUG/`, `OCT/`** – Months of collection.
         - `WED/`, `THU/`, `TUE/`, … – Calendar day.
           - `T01/`, `T02/`, `T03/` – Measurement folders.
-            - `fpga_em_trace_dc_citya_lab.wav` – Local 50 Hz EM trace near FPGA.
-            - `mains_pow_trace_ac_citya_lab.wav` – Local 50 Hz mains reference.
-            - `mains_pow_trace_ac_dresden.wav` – Remote European mains reference.
+            - `fpga_em_trace_dc_citya_lab.wav` – Local 60 Hz EM trace near FPGA.
+            - `mains_pow_trace_ac_citya_lab.wav` – Local 60 Hz mains reference.
+            - `mains_pow_trace_ac_dresden.wav` – Dresden grid reference.
 
     Each `Txx` folder thus contains one EM trace and multiple mains references from different grid regions, enabling the cross-grid correlation matrices used in Experiment 5.
-
-  - **`TREND/`** – **Experiment 3 – ENF Temporal Reliability.**  
-    Designed to measure how stable ENF correlation is over **Week**, **Day-of-Week**, and **Time-of-Day** at a single grid location.
-
-    - **`WK01/`, `WK02/`** – Two consecutive weeks.
-      - **`WDAY/`**, **`WEND/`** – Weekday vs weekend partition.
-        - **`WED/`, `THUR/`, `SAT/`, `SUN/`** – Specific days.
-          - **`EMRN/`, `MORN/`, `AFTN/`, `EVEN/`** – Time-of-day slots:
-            - EMRN ≈ early morning (4 AM).  
-            - MORN ≈ morning (9 AM).  
-            - AFTN ≈ afternoon (2 PM).  
-            - EVEN ≈ evening (7 PM).
-          - **`T01/`–`T05/`** – Five repeated trials per (Week, Day, Time-of-Day) condition.
-            - `fpga_em_trace_dc.wav` – Ambient EM trace near the FPGA board.
-            - `mains_pow_trace_ac.wav` – Mains reference trace.
-
-    This design yields 2 weeks × 4 days × 4 times × 5 trials = 160 measurements.
-
-  - **`SRV_L/`** – **Experiment 4 – ENF Server-Room Robustness.**  
-    ENF measurements in a high-density computing environment, studying robustness to sensor placement on the server PSU and day-of-week.
-
-    - **`SBOX/`**, **`SPSU/`** – Two sensor locations:
-      - For each site:
-        - **`MON/`, `WED/`** – Two days.
-          - **`T01/`–`T05/`** – Five repeated trials per (Site, Day) condition.
-            - `fpga_em_trace_dc.wav` – Ambient EM trace near server PSU/BOX.
-            - `mains_pow_trace_ac.wav` – Co-recorded mains reference.
 
 - **`exp_scripts/`** – MATLAB scripts required to run the ENF extraction, correlation, and statistical analysis.
 
@@ -132,7 +132,7 @@ This section summarizes what each top-level MATLAB script does and how it relate
 
 4. **Correlation & Outputs**
    - Computes the **Pearson correlation coefficient** between the sensed ENF and the mains ENF.
-   - Optionally produces aligned ENF plots and summary correlation statistics for the baseline and FPGA experiments.
+   - Produces spectrogram and aligned extracted ENF plots.
 
 This script is the simplest entry point if you want to understand the core ENF extraction and correlation pipeline on a single pair of traces.
 
@@ -158,15 +158,15 @@ This script is the simplest entry point if you want to understand the core ENF e
    - Computes correlation **r** per file pair and applies the **Fisher transform** `z = atanh(r)` for parametric inference.
 
 3. **Statistics**
-   - Computes descriptive statistics for **r** and **z** (N, mean, SD, SEM, 95% CI).
-   - Performs one-factor-at-a-time analyses on Fisher-z:
+   - Computes descriptive statistics for **r** and **z** (N, mean, SD, 95% CI).
+   - Performs one-way RM ANOVA analyses on Fisher-z:
      - Time-of-Day (EMRN, MORN, AFTN, EVEN).
      - Day-of-Week (WED, THUR, SAT, SUN).
      - Week-to-Week (WK01 vs WK02) via paired t-tests on matched conditions.
 
 4. **Visualization**
    - Dot-and-whisker (mean ± 95% CI) plots for the factors above.
-   - Optional histograms and z-distribution diagnostics.
+   - Optional histograms and z-distribution plots.
 
 ---
 
@@ -176,7 +176,6 @@ This script is the simplest entry point if you want to understand the core ENF e
 **Data root:** `exp_inputs/SRV_L/`
 
 **Goal:** Evaluate how robust ENF extraction is inside a **high-density server-room environment**, focusing on:
-
 - Sensor position on the server PSU (SBOX vs SPSU).
 - Day-of-week effects (MON vs WED).
 
@@ -190,21 +189,19 @@ This script is the simplest entry point if you want to understand the core ENF e
    - Five trials (`T01`–`T05`) per condition.
 
 2. **ENF Extraction & Correlation**
-   - STFT around 60 Hz harmonics.
-   - Weighted-harmonic ENF estimator.
-   - Pearson correlation **r** per trial, then Fisher-z for inference.
+   - Uses the same STFT+weighted-harmonic estimator as the pair-wise script.
+   - Computes correlation **r** per file pair and applies the **Fisher transform** `z = atanh(r)` for parametric inference.
 
 3. **Statistics**
    - Descriptive statistics on **r** and **z**.
-   - One-way repeated-measures ANOVA on **z** for:
+   - One-way RM ANOVA on **z** for:
      - **Day**: MON vs WED (subjects = repeated trials, averaged over Site).
      - **Site**: SBOX vs SPSU (subjects = repeated trials, averaged over Day).
    - Reports effect sizes and 95% CIs, then back-transforms model estimates to **r**.
 
 4. **Visualization**
-   - Dot-and-whisker plots for Site and Day.
-   - Boxplots and histograms for **r** and **z**.
-   - Diagnostic z-distribution plots.
+   - Dot-and-whisker (mean ± 95% CI) plots for the factors above.
+   - Optional histograms and z-distribution plots.
 
 ---
 
@@ -227,10 +224,10 @@ This script is the simplest entry point if you want to understand the core ENF e
 
 2. **ENF Extraction & Correlation**
    - STFT centered on the appropriate nominal frequency (50 or 60 Hz) and harmonics.
-   - ENF estimation via weighted-harmonic approach for each trace.
-   - For every EM trace, computes correlation **r** with every available mains reference in that trial folder.
+   - ENF estimation via the weighted-harmonic approach for each trace.
+   - For every EM trace, compute correlation **r** with every available mains reference in that trial folder.
    - Aggregates pairwise correlations into:
-     - Per-folder lower-triangle correlation matrices.
+     - Per-folder (phase-wise) correlation matrices.
      - Per-grid average correlation matrices and summaries.
 
 3. **Statistics**
@@ -270,7 +267,7 @@ To run the analysis end-to-end, you will need:
 
 - **MATLAB R2018b or newer**.
 - The **Signal Processing Toolbox**.
-- Sufficient disk space to load the WAV files and write figures / logs.
+- Sufficient disk space to load the WAV files and write figures/logs.
 
 No additional toolboxes are required beyond what the top-level scripts are already using.
 
